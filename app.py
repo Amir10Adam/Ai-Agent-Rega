@@ -15,11 +15,14 @@ warnings.filterwarnings("ignore", category=UserWarning)
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
 from langchain_core.tools import tool
 from langchain_groq import ChatGroq
-from groq import Groq  # نستخدمها فقط لقراءة حدود الاستهلاك (rate limits) من الـ headers
+from groq import Groq  # لقراءة حدود الاستهلاك (rate limits) من الـ headers
 import gspread
 from google.oauth2.service_account import Credentials
+
+load_dotenv()
+
 # ==========================================
-# إعدادات الاعتمادات (تدعم المحلي والسحابي أماناً)
+# 1. إعدادات الاعتمادات (تدعم المحلي والسحابي أماناً)
 # ==========================================
 scopes = [
     "https://www.googleapis.com/auth/spreadsheets.readonly",
@@ -35,45 +38,10 @@ else:
     GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "credentials.json")
     creds = Credentials.from_service_account_file(GOOGLE_SERVICE_ACCOUNT_JSON, scopes=scopes)
 
-# دالة تحميل الشيتات والتابات
-@st.cache_data(ttl=600, show_spinner="Loading data from Google Sheets tabs...")
-def load_sheet_as_dataframe(sheet_id: str, worksheet_name: str) -> pd.DataFrame:
-    client = gspread.authorize(creds)
-    sheet = client.open_by_key(sheet_id).worksheet(worksheet_name)
-    
-    data = sheet.get_all_values()
-    if not data or len(data) <= 1:
-        raise ValueError(f"The worksheet '{worksheet_name}' is empty or has no data.")
-    
-    headers = data[0]
-    seen = {}
-    unique_headers = []
-    for h in headers:
-        h_str = str(h).strip()
-        if not h_str:
-            h_str = "Unnamed"
-        if h_str in seen:
-            seen[h_str] += 1
-            unique_headers.append(f"{h_str}_{seen[h_str]}")
-        else:
-            seen[h_str] = 0
-            unique_headers.append(h_str)
-            
-    df = pd.DataFrame(data[1:], columns=unique_headers)
-    return df
-
-load_dotenv()
-
 # ==========================================
-# 1. إعدادات المتغيرات والشيتات
+# 2. إعدادات المتغيرات والشيتات
 # ==========================================
 GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "credentials.json")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-# لازم قيمة افتراضية: لو الـ .env نسي يحددها، الكود كان بيفشل بـ error غامض بدل رسالة واضحة.
-# llama-3.3-70b-versatile اتقفل من Groq في 16 أغسطس 2026؛ البديل الرسمي الموصى به هو ده:
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
-
-# الشيت الأول (وتاباته)
 GOOGLE_SHEET_ID = os.environ.get("GOOGLE_SHEET_ID")
 GOOGLE_WORKSHEET_NAME = os.environ.get("GOOGLE_WORKSHEET_NAME", "all_data")
 DATASET_1_LABEL = os.environ.get("DATASET_1_LABEL", "real_estate_all_data")
@@ -89,6 +57,9 @@ DATASET_3_LABEL = os.environ.get("DATASET_3_LABEL", "masar_makkah_units")
 GOOGLE_WORKSHEET_NAME_4 = os.environ.get("GOOGLE_WORKSHEET_NAME_4", "Change log Oracle Format")
 DATASET_4_LABEL = os.environ.get("DATASET_4_LABEL", "masar_makkah_changelog")
 
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama3-8b-8192")
+
 MAX_AGENT_STEPS = 6
 
 SYSTEM_PROMPT = (
@@ -100,11 +71,10 @@ SYSTEM_PROMPT = (
 
 
 # ==========================================
-# 2. تتبع استهلاك الـ tokens
+# 3. تتبع استهلاك الـ tokens
 # ==========================================
 
 def extract_token_usage(response) -> dict:
-    """يسحب عدد الـ tokens من رد الموديل (بدون أي طلب إضافي)."""
     usage = getattr(response, "usage_metadata", None)
     if usage:
         return {
@@ -132,11 +102,6 @@ def accumulate_token_usage(response):
 
 
 def check_groq_rate_limits(model: str = GROQ_MODEL) -> dict:
-    """
-    يبعت رسالة صغيرة جدًا للـ API الرسمي عشان يقرأ الـ headers اللي فيها حدود
-    الاستهلاك الحالية عند Groq (TPM / RPD). ده بيستهلك تقريبًا توكن واحد، فمخصص
-    لزرار "تحقق" وليس لكل رسالة شات.
-    """
     try:
         client = Groq(api_key=GROQ_API_KEY)
         response = client.chat.completions.with_raw_response.create(
@@ -186,26 +151,19 @@ def render_token_sidebar():
 
 
 # ==========================================
-# 3. تحميل الشيتات
+# 4. دالة تحميل الشيتات
 # ==========================================
 
 @st.cache_data(ttl=600, show_spinner="Loading data from Google Sheets tabs...")
 def load_sheet_as_dataframe(sheet_id: str, worksheet_name: str) -> pd.DataFrame:
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets.readonly",
-        "https://www.googleapis.com/auth/drive.readonly",
-    ]
-    creds = Credentials.from_service_account_file(GOOGLE_SERVICE_ACCOUNT_JSON, scopes=scopes)
     client = gspread.authorize(creds)
     sheet = client.open_by_key(sheet_id).worksheet(worksheet_name)
 
-    # جلب البيانات كقائمة صفوف ثم تحويلها لـ DataFrame يدوياً لتجنب مشاكل تكرار العناوين
     data = sheet.get_all_values()
     if not data or len(data) <= 1:
         raise ValueError(f"The worksheet '{worksheet_name}' is empty or has no data.")
 
     headers = data[0]
-    # معالجة الأسماء المكررة في العناوين بإضافة رقم تسلسلي تلقائياً
     seen = {}
     unique_headers = []
     for h in headers:
@@ -254,12 +212,11 @@ def make_pandas_tool(datasets: dict[str, pd.DataFrame], code_llm):
             return f"Unknown dataset '{dataset}'. Valid options are: {dataset_names}"
         df = datasets[dataset]
         
-        # ⬇️ التعديل هنا: إضافة تنبيه صارم يمنع حذف الـ Outliers والـ 1500
         prompt = f"""You are a pandas expert. DataFrame `df` is loaded. Columns: {list(df.columns)}.
 Question: "{question_description}"
 
 Write ONLY executable Python (pandas) code assigning the answer to a variable named `result`.
-- CRITICAL INSTRUCTION: Never drop, filter out, or ignore outliers, extreme values, or high values (such as 1500 or any max value) unless the user explicitly and directly asks you to remove outliers. Always include all data points (e.g., Al-Nokhba neighborhood maximum value of 1500 must be included).
+- CRITICAL INSTRUCTION: Never drop, filter out, or ignore outliers, extreme values, or high values unless the user explicitly and directly asks you to remove outliers. Always include all data points.
 - IMPORTANT: every column in `df` was loaded as plain text/strings, even numeric-looking ones.
   Always convert numeric columns first with pd.to_numeric(df[col], errors="coerce") before any
   math, comparison, sum, mean, or sorting operation on them.
@@ -276,6 +233,7 @@ Write ONLY executable Python (pandas) code assigning the answer to a variable na
 
     execute_pandas_query.description = f"Run pandas query. Dataset must be one of: {dataset_names}.\n{dataset_summaries}"
     return execute_pandas_query
+
 
 def run_agent_turn(agent_llm, tools_by_name: dict, chat_history: list, question: str) -> str:
     messages = [SystemMessage(content=SYSTEM_PROMPT)] + chat_history + [HumanMessage(content=question)]
