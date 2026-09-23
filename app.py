@@ -18,6 +18,49 @@ from langchain_groq import ChatGroq
 from groq import Groq  # نستخدمها فقط لقراءة حدود الاستهلاك (rate limits) من الـ headers
 import gspread
 from google.oauth2.service_account import Credentials
+# ==========================================
+# إعدادات الاعتمادات (تدعم المحلي والسحابي أماناً)
+# ==========================================
+scopes = [
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/drive.readonly",
+]
+
+# التحقق مما إذا كنا نعمل على منصة Streamlit Cloud (عبر الـ Secrets)
+if "gcp_service_account" in st.secrets:
+    service_account_info = dict(st.secrets["gcp_service_account"])
+    creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
+else:
+    # محلياً على جهازك باستخدام ملف credentials.json
+    GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "credentials.json")
+    creds = Credentials.from_service_account_file(GOOGLE_SERVICE_ACCOUNT_JSON, scopes=scopes)
+
+# دالة تحميل الشيتات والتابات
+@st.cache_data(ttl=600, show_spinner="Loading data from Google Sheets tabs...")
+def load_sheet_as_dataframe(sheet_id: str, worksheet_name: str) -> pd.DataFrame:
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key(sheet_id).worksheet(worksheet_name)
+    
+    data = sheet.get_all_values()
+    if not data or len(data) <= 1:
+        raise ValueError(f"The worksheet '{worksheet_name}' is empty or has no data.")
+    
+    headers = data[0]
+    seen = {}
+    unique_headers = []
+    for h in headers:
+        h_str = str(h).strip()
+        if not h_str:
+            h_str = "Unnamed"
+        if h_str in seen:
+            seen[h_str] += 1
+            unique_headers.append(f"{h_str}_{seen[h_str]}")
+        else:
+            seen[h_str] = 0
+            unique_headers.append(h_str)
+            
+    df = pd.DataFrame(data[1:], columns=unique_headers)
+    return df
 
 load_dotenv()
 
