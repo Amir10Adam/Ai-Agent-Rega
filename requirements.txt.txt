@@ -1,0 +1,7 @@
+streamlit
+pandas
+gspread
+google-auth
+langchain-core
+langchain-groq
+groq
