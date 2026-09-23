@@ -8,18 +8,15 @@ import re
 import warnings
 import pandas as pd
 import streamlit as st
-from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
 from langchain_core.tools import tool
 from langchain_groq import ChatGroq
-from groq import Groq  # لقراءة حدود الاستهلاك (rate limits) من الـ headers
+from groq import Groq
 import gspread
 from google.oauth2.service_account import Credentials
-
-load_dotenv()
 
 # ==========================================
 # 1. إعدادات الاعتمادات (تدعم المحلي والسحابي أماناً)
@@ -29,36 +26,38 @@ scopes = [
     "https://www.googleapis.com/auth/drive.readonly",
 ]
 
-# التحقق مما إذا كنا نعمل على منصة Streamlit Cloud (عبر الـ Secrets)
-if "gcp_service_account" in st.secrets:
-    service_account_info = dict(st.secrets["gcp_service_account"])
-    creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
-else:
-    # محلياً على جهازك باستخدام ملف credentials.json
+creds = None
+try:
+    if "gcp_service_account" in st.secrets:
+        service_account_info = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
+except Exception:
+    pass
+
+if not creds:
     GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "credentials.json")
     creds = Credentials.from_service_account_file(GOOGLE_SERVICE_ACCOUNT_JSON, scopes=scopes)
 
 # ==========================================
 # 2. إعدادات المتغيرات والشيتات
 # ==========================================
-GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "credentials.json")
-GOOGLE_SHEET_ID = os.environ.get("GOOGLE_SHEET_ID")
-GOOGLE_WORKSHEET_NAME = os.environ.get("GOOGLE_WORKSHEET_NAME", "all_data")
-DATASET_1_LABEL = os.environ.get("DATASET_1_LABEL", "real_estate_all_data")
+GOOGLE_SHEET_ID = st.secrets.get("GOOGLE_SHEET_ID", os.environ.get("GOOGLE_SHEET_ID"))
+GOOGLE_WORKSHEET_NAME = st.secrets.get("GOOGLE_WORKSHEET_NAME", os.environ.get("GOOGLE_WORKSHEET_NAME", "all_data"))
+DATASET_1_LABEL = st.secrets.get("DATASET_1_LABEL", os.environ.get("DATASET_1_LABEL", "real_estate_all_data"))
 
-GOOGLE_WORKSHEET_NAME_2 = os.environ.get("GOOGLE_WORKSHEET_NAME_2", "city")
-DATASET_2_LABEL = os.environ.get("DATASET_2_LABEL", "real_estate_city")
+GOOGLE_WORKSHEET_NAME_2 = st.secrets.get("GOOGLE_WORKSHEET_NAME_2", os.environ.get("GOOGLE_WORKSHEET_NAME_2", "city"))
+DATASET_2_LABEL = st.secrets.get("DATASET_2_LABEL", os.environ.get("DATASET_2_LABEL", "real_estate_city"))
 
 # الشيت الثاني / مسار مكة (وتاباته)
-GOOGLE_SHEET_ID_3 = os.environ.get("GOOGLE_SHEET_ID_3")
-GOOGLE_WORKSHEET_NAME_3 = os.environ.get("GOOGLE_WORKSHEET_NAME_3", "Units Details")
-DATASET_3_LABEL = os.environ.get("DATASET_3_LABEL", "masar_makkah_units")
+GOOGLE_SHEET_ID_3 = st.secrets.get("GOOGLE_SHEET_ID_3", os.environ.get("GOOGLE_SHEET_ID_3"))
+GOOGLE_WORKSHEET_NAME_3 = st.secrets.get("GOOGLE_WORKSHEET_NAME_3", os.environ.get("GOOGLE_WORKSHEET_NAME_3", "Units Details"))
+DATASET_3_LABEL = st.secrets.get("DATASET_3_LABEL", os.environ.get("DATASET_3_LABEL", "masar_makkah_units"))
 
-GOOGLE_WORKSHEET_NAME_4 = os.environ.get("GOOGLE_WORKSHEET_NAME_4", "Change log Oracle Format")
-DATASET_4_LABEL = os.environ.get("DATASET_4_LABEL", "masar_makkah_changelog")
+GOOGLE_WORKSHEET_NAME_4 = st.secrets.get("GOOGLE_WORKSHEET_NAME_4", os.environ.get("GOOGLE_WORKSHEET_NAME_4", "Change log Oracle Format"))
+DATASET_4_LABEL = st.secrets.get("DATASET_4_LABEL", os.environ.get("DATASET_4_LABEL", "masar_makkah_changelog"))
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama3-8b-8192")
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", os.environ.get("GROQ_API_KEY"))
+GROQ_MODEL = st.secrets.get("GROQ_MODEL", os.environ.get("GROQ_MODEL", "llama3-8b-8192"))
 
 MAX_AGENT_STEPS = 6
 
@@ -255,7 +254,7 @@ st.set_page_config(page_title="اسأل عن البيانات", page_icon="📊"
 st.title("📊 اسأل عن بيانات الشيتات والتابات المختلفة")
 
 if not GOOGLE_SHEET_ID or not GROQ_API_KEY or not GROQ_MODEL:
-    st.error("تأكد من وجود GOOGLE_SHEET_ID و GROQ_API_KEY و GROQ_MODEL في ملف .env")
+    st.error("تأكد من إعداد المتغيرات الأساسية (GOOGLE_SHEET_ID, GROQ_API_KEY, GROQ_MODEL) في الـ Secrets أو ملف .env")
     st.stop()
 
 render_token_sidebar()
