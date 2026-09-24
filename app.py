@@ -276,9 +276,6 @@ try:
     # تحميل التابتين من الشيت الأول
     if GOOGLE_SHEET_ID and GOOGLE_WORKSHEET_NAME:
         datasets[DATASET_1_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID, GOOGLE_WORKSHEET_NAME)
-    if GOOGLE_SHEET_ID and GOOGLE_WORKSHEET_NAME_2:
-        datasets[DATASET_2_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID, GOOGLE_WORKSHEET_NAME_2)
-
     # تحميل التابتين من الشيت الثاني (مسار مكة)
     if GOOGLE_SHEET_ID_3 and GOOGLE_WORKSHEET_NAME_3:
         datasets[DATASET_3_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_3, GOOGLE_WORKSHEET_NAME_3)
