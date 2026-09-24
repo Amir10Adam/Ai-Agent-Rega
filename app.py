@@ -40,15 +40,13 @@ if not creds:
     creds = Credentials.from_service_account_file(GOOGLE_SERVICE_ACCOUNT_JSON, scopes=scopes)
 
 # ==========================================
-# 2. إعدادات المتغيرات والشيتات
-# ==========================================
 GOOGLE_SHEET_ID = st.secrets.get("GOOGLE_SHEET_ID", os.environ.get("GOOGLE_SHEET_ID"))
 GOOGLE_WORKSHEET_NAME = st.secrets.get("GOOGLE_WORKSHEET_NAME", os.environ.get("GOOGLE_WORKSHEET_NAME", "all_data"))
 DATASET_1_LABEL = st.secrets.get("DATASET_1_LABEL", os.environ.get("DATASET_1_LABEL", "real_estate_all_data"))
 
 GOOGLE_SHEET_ID_2 = st.secrets.get("GOOGLE_SHEET_ID_2", os.environ.get("GOOGLE_SHEET_ID_2"))
 GOOGLE_WORKSHEET_NAME_2 = st.secrets.get("GOOGLE_WORKSHEET_NAME_2", os.environ.get("GOOGLE_WORKSHEET_NAME_2", "city"))
-DATASET_2_LABEL = st.secrets.get("DATASET_2_LABEL", os.environ.get("DATASET_2_LABEL", "real_estate_city "))
+DATASET_2_LABEL = st.secrets.get("DATASET_2_LABEL", os.environ.get("DATASET_2_LABEL", "real_estate_city"))   # ← شيلت المسافة الزيادة بعد city
 
 # الشيت الثاني / مسار مكة (وتاباته)
 GOOGLE_SHEET_ID_3 = st.secrets.get("GOOGLE_SHEET_ID_3", os.environ.get("GOOGLE_SHEET_ID_3"))
@@ -296,24 +294,28 @@ render_token_sidebar()
 try:
     datasets = {}
 
-    # تحميل التابتين من الشيت الأول
+    # تحميل التاب الأول من الشيت الأول
     if GOOGLE_SHEET_ID and GOOGLE_WORKSHEET_NAME:
         datasets[DATASET_1_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID, GOOGLE_WORKSHEET_NAME)
+
+    # تحميل التاب التاني من شيت تاني منفصل (city)
     if GOOGLE_SHEET_ID_2 and GOOGLE_WORKSHEET_NAME_2:
         datasets[DATASET_2_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_2, GOOGLE_WORKSHEET_NAME_2)
-            # تحميل التابتين من الشيت الثاني (مسار مكة)
+
+    # تحميل التابتين من الشيت الثالث (مسار مكة)
     if GOOGLE_SHEET_ID_3 and GOOGLE_WORKSHEET_NAME_3:
         datasets[DATASET_3_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_3, GOOGLE_WORKSHEET_NAME_3)
     if GOOGLE_SHEET_ID_3 and GOOGLE_WORKSHEET_NAME_4:
         datasets[DATASET_4_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_3, GOOGLE_WORKSHEET_NAME_4)
 
+    if not GOOGLE_SHEET_ID_2:
+        st.warning("⚠️ GOOGLE_SHEET_ID_2 غير محدد — لم يتم تحميل بيانات city.")
     if not GOOGLE_SHEET_ID_3:
         st.warning("⚠️ GOOGLE_SHEET_ID_3 غير محدد — لم يتم تحميل بيانات مسار مكة.")
 
 except Exception as e:
     st.error(f"خطأ في تحميل التابات: {e}")
     st.stop()
-
 # عرض تقرير سريع بالتابات المحملة على الواجهة
 for name, d in datasets.items():
     st.caption(f"📁 **Dataset (`{name}`)**: تم تحميل {len(d)} صف و {len(d.columns)} عمود.")
