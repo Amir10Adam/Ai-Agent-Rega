@@ -5,6 +5,7 @@ Stakeholder Data Chat App (Fixed Duplicate Headers + Token Tracking Edition)
 
 import os
 import re
+import time
 import warnings
 import pandas as pd
 import streamlit as st
@@ -98,7 +99,10 @@ def accumulate_token_usage(response):
     st.session_state.session_tokens["input"] += usage["input"]
     st.session_state.session_tokens["output"] += usage["output"]
     st.session_state.session_tokens["total"] += usage["total"]
-
+    
+def record_latency(elapsed: float):
+    st.session_state.setdefault("latency_log", [])
+    st.session_state.latency_log.append(elapsed)
 
 def check_groq_rate_limits(model: str = GROQ_MODEL) -> dict:
     try:
@@ -128,7 +132,14 @@ def render_token_sidebar():
         session_tokens = st.session_state.get("session_tokens", {"input": 0, "output": 0, "total": 0})
         st.metric("إجمالي التوكنز المستهلكة في الجلسة", session_tokens["total"])
         st.caption(f"مدخلة: {session_tokens['input']} | مخرجة: {session_tokens['output']}")
-
+        # ---- ضيف الجزء ده هنا ----
+        latency_log = st.session_state.get("latency_log", [])
+        if latency_log:
+            avg_latency = sum(latency_log) / len(latency_log)
+            last_latency = latency_log[-1]
+            st.metric("متوسط زمن الاستجابة", f"{avg_latency:.2f} ثانية")
+            st.caption(f"آخر سؤال: {last_latency:.2f} ثانية | عدد الأسئلة: {len(latency_log)}")
+        # ---- لحد هنا ----
         st.divider()
         if st.button("تحقق من الحد المتبقي عند Groq"):
             with st.spinner("بجيب البيانات من Groq..."):
@@ -234,7 +245,8 @@ Write ONLY executable Python (pandas) code assigning the answer to a variable na
     return execute_pandas_query
 
 
-def run_agent_turn(agent_llm, tools_by_name: dict, chat_history: list, question: str) -> str:
+def run_agent_turn(agent_llm, tools_by_name: dict, chat_history: list, question: str) -> tuple[str, float]:
+    start_time = time.time()
     messages = [SystemMessage(content=SYSTEM_PROMPT)] + chat_history + [HumanMessage(content=question)]
     for _ in range(MAX_AGENT_STEPS):
         response = agent_llm.invoke(messages)
@@ -242,12 +254,14 @@ def run_agent_turn(agent_llm, tools_by_name: dict, chat_history: list, question:
         messages.append(response)
         tool_calls = getattr(response, "tool_calls", None)
         if not tool_calls:
-            return response.content or "لم يتمكن النموذج من توليد إجابة."
+            elapsed = time.time() - start_time
+            return (response.content or "لم يتمكن النموذج من توليد إجابة."), elapsed 
         for call in tool_calls:
             selected_tool = tools_by_name.get(call["name"])
             tool_output = selected_tool.invoke(call["args"]) if selected_tool else f"Unknown tool: {call['name']}"
             messages.append(ToolMessage(content=str(tool_output), tool_call_id=call["id"]))
-    return "توقفت بعد عدة محاولات."
+            elapsed = time.time() - start_time
+    return "توقفت بعد عدة محاولات.",elapsed
 
 
 st.set_page_config(page_title="اسأل عن البيانات", page_icon="📊")
@@ -306,8 +320,10 @@ if question:
 
     with st.chat_message("assistant"):
         with st.spinner("جاري المعالجة..."):
-            answer = run_agent_turn(agent_llm, tools_by_name, st.session_state.lc_history, question)
+            answer, elapsed = run_agent_turn(agent_llm, tools_by_name, st.session_state.lc_history, question)
+            record_latency(elapsed)
         st.markdown(answer)
+        st.caption(f"⏱️ استغرقت {elapsed:.2f} ثانية")   # اختياري: تعرض الوقت تحت كل رد
 
     st.session_state.messages.append(("assistant", answer))
     st.session_state.lc_history.extend([HumanMessage(content=question), AIMessage(content=answer)])
