@@ -46,9 +46,6 @@ GOOGLE_SHEET_ID = st.secrets.get("GOOGLE_SHEET_ID", os.environ.get("GOOGLE_SHEET
 GOOGLE_WORKSHEET_NAME = st.secrets.get("GOOGLE_WORKSHEET_NAME", os.environ.get("GOOGLE_WORKSHEET_NAME", "all_data"))
 DATASET_1_LABEL = st.secrets.get("DATASET_1_LABEL", os.environ.get("DATASET_1_LABEL", "real_estate_all_data"))
 
-GOOGLE_WORKSHEET_NAME_2 = st.secrets.get("GOOGLE_WORKSHEET_NAME_2", os.environ.get("GOOGLE_WORKSHEET_NAME_2", "city"))
-DATASET_2_LABEL = st.secrets.get("DATASET_2_LABEL", os.environ.get("DATASET_2_LABEL", "real_estate_city"))
-
 # الشيت الثاني / مسار مكة (وتاباته)
 GOOGLE_SHEET_ID_3 = st.secrets.get("GOOGLE_SHEET_ID_3", os.environ.get("GOOGLE_SHEET_ID_3"))
 GOOGLE_WORKSHEET_NAME_3 = st.secrets.get("GOOGLE_WORKSHEET_NAME_3", os.environ.get("GOOGLE_WORKSHEET_NAME_3", "Units Details"))
