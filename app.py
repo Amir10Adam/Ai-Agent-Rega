@@ -46,6 +46,10 @@ GOOGLE_SHEET_ID = st.secrets.get("GOOGLE_SHEET_ID", os.environ.get("GOOGLE_SHEET
 GOOGLE_WORKSHEET_NAME = st.secrets.get("GOOGLE_WORKSHEET_NAME", os.environ.get("GOOGLE_WORKSHEET_NAME", "all_data"))
 DATASET_1_LABEL = st.secrets.get("DATASET_1_LABEL", os.environ.get("DATASET_1_LABEL", "real_estate_all_data"))
 
+GOOGLE_SHEET_ID_2 = st.secrets.get("GOOGLE_SHEET_ID_2", os.environ.get("GOOGLE_SHEET_ID_2"))
+GOOGLE_WORKSHEET_NAME_2 = st.secrets.get("GOOGLE_WORKSHEET_NAME_2", os.environ.get("GOOGLE_WORKSHEET_NAME_2", "city"))
+DATASET_2_LABEL = st.secrets.get("DATASET_2_LABEL", os.environ.get("DATASET_2_LABEL", "real_estate_city "))
+
 # الشيت الثاني / مسار مكة (وتاباته)
 GOOGLE_SHEET_ID_3 = st.secrets.get("GOOGLE_SHEET_ID_3", os.environ.get("GOOGLE_SHEET_ID_3"))
 GOOGLE_WORKSHEET_NAME_3 = st.secrets.get("GOOGLE_WORKSHEET_NAME_3", os.environ.get("GOOGLE_WORKSHEET_NAME_3", "Units Details"))
@@ -61,9 +65,28 @@ MAX_AGENT_STEPS = 12
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant answering questions about multiple datasets/tabs "
-    "(including real_estate_all_data, real_estate_city, masar_makkah_units, masar_makkah_changelog) "
-    "for a business stakeholder. Always pick the correct `dataset` name. Answer in clear, natural language "
-    "(Arabic if the user asked in Arabic, English otherwise), and never show raw code."
+    "(real_estate_all_data, real_estate_city, masar_makkah_units, masar_makkah_changelog) "
+    "for a business stakeholder. Always pick the correct `dataset` name. Answer in clear, "
+    "natural language (Arabic if the user asked in Arabic, English otherwise), and never "
+    "show raw code.\n\n"
+    "DATASET SELECTION RULES for real estate questions:\n"
+    "1. If the question asks for a CITY-LEVEL summary (total transactions, total value, "
+    "average price, comparing cities) with NO breakdown by property type, neighborhood, "
+    "or month requested -> use 'real_estate_city' FIRST, since it already holds "
+    "pre-aggregated per-city numbers and is faster/more reliable for that.\n"
+    "2. If the requested city, month, or metric is NOT found in 'real_estate_city' -> "
+    "fall back to 'real_estate_all_data' and compute it yourself by filtering/grouping the "
+    "raw transactions. Explicitly tell the user the number came from the raw data because "
+    "it wasn't available in the city summary.\n"
+    "3. If the question asks for a breakdown BY PROPERTY TYPE (نوع العقار), BY "
+    "NEIGHBORHOOD (حي), or BY MONTH -> always use 'real_estate_all_data' directly, since "
+    "'real_estate_city' has no such columns — never try 'real_estate_city' for these first.\n"
+    "4. Never silently substitute a different aggregation than what was asked (e.g. don't "
+    "return a city-wide total when the user asked for a per-neighborhood or per-type "
+    "breakdown). If a requested column or breakdown genuinely doesn't exist in the chosen "
+    "dataset, say so clearly instead of returning a misleading number.\n"
+    "5. Always tell the user which dataset ('real_estate_city' or 'real_estate_all_data') "
+    "the answer came from, so they know the source."
 )
 
 
@@ -276,7 +299,9 @@ try:
     # تحميل التابتين من الشيت الأول
     if GOOGLE_SHEET_ID and GOOGLE_WORKSHEET_NAME:
         datasets[DATASET_1_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID, GOOGLE_WORKSHEET_NAME)
-    # تحميل التابتين من الشيت الثاني (مسار مكة)
+    if GOOGLE_SHEET_ID_2 and GOOGLE_WORKSHEET_NAME_2:
+        datasets[DATASET_2_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_2, GOOGLE_WORKSHEET_NAME_2)
+            # تحميل التابتين من الشيت الثاني (مسار مكة)
     if GOOGLE_SHEET_ID_3 and GOOGLE_WORKSHEET_NAME_3:
         datasets[DATASET_3_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_3, GOOGLE_WORKSHEET_NAME_3)
     if GOOGLE_SHEET_ID_3 and GOOGLE_WORKSHEET_NAME_4:
