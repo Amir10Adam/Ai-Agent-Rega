@@ -44,7 +44,6 @@ GOOGLE_SHEET_ID = st.secrets.get("GOOGLE_SHEET_ID", os.environ.get("GOOGLE_SHEET
 GOOGLE_WORKSHEET_NAME = st.secrets.get("GOOGLE_WORKSHEET_NAME", os.environ.get("GOOGLE_WORKSHEET_NAME", "all_data"))
 DATASET_1_LABEL = st.secrets.get("DATASET_1_LABEL", os.environ.get("DATASET_1_LABEL", "real_estate_all_data"))
 
-GOOGLE_SHEET_ID_2 = st.secrets.get("GOOGLE_SHEET_ID_2", os.environ.get("GOOGLE_SHEET_ID_2"))
 GOOGLE_WORKSHEET_NAME_2 = st.secrets.get("GOOGLE_WORKSHEET_NAME_2", os.environ.get("GOOGLE_WORKSHEET_NAME_2", "city"))
 DATASET_2_LABEL = st.secrets.get("DATASET_2_LABEL", os.environ.get("DATASET_2_LABEL", "real_estate_city"))   # ← شيلت المسافة الزيادة بعد city
 
