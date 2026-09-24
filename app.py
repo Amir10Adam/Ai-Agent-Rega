@@ -60,7 +60,7 @@ DATASET_4_LABEL = st.secrets.get("DATASET_4_LABEL", os.environ.get("DATASET_4_LA
 GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", os.environ.get("GROQ_API_KEY"))
 GROQ_MODEL = st.secrets.get("GROQ_MODEL", os.environ.get("GROQ_MODEL", "llama3-8b-8192"))
 
-MAX_AGENT_STEPS = 6
+MAX_AGENT_STEPS = 12
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant answering questions about multiple datasets/tabs "
