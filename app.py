@@ -298,17 +298,17 @@ try:
         datasets[DATASET_1_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID, GOOGLE_WORKSHEET_NAME)
 
     # تحميل التاب التاني من شيت تاني منفصل (city)
-    if GOOGLE_SHEET_ID_2 and GOOGLE_WORKSHEET_NAME_2:
-        datasets[DATASET_2_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_2, GOOGLE_WORKSHEET_NAME_2)
+    if GOOGLE_SHEET_ID and GOOGLE_WORKSHEET_NAME_2:
+        datasets[DATASET_2_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID, GOOGLE_WORKSHEET_NAME_2)
 
     # تحميل التابتين من الشيت الثالث (مسار مكة)
     if GOOGLE_SHEET_ID_3 and GOOGLE_WORKSHEET_NAME_3:
         datasets[DATASET_3_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_3, GOOGLE_WORKSHEET_NAME_3)
     if GOOGLE_SHEET_ID_3 and GOOGLE_WORKSHEET_NAME_4:
         datasets[DATASET_4_LABEL] = load_sheet_as_dataframe(GOOGLE_SHEET_ID_3, GOOGLE_WORKSHEET_NAME_4)
-
-    if not GOOGLE_SHEET_ID_2:
-        st.warning("⚠️ GOOGLE_SHEET_ID_2 غير محدد — لم يتم تحميل بيانات city.")
+    if not GOOGLE_SHEET_ID:
+             st.warning("⚠️ GOOGLE_SHEET_ID غير محدد — لم يتم تحميل بيانات مسار مكة.")
+        
     if not GOOGLE_SHEET_ID_3:
         st.warning("⚠️ GOOGLE_SHEET_ID_3 غير محدد — لم يتم تحميل بيانات مسار مكة.")
 
