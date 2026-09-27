@@ -158,6 +158,12 @@ def render_token_sidebar():
             st.caption(f"آخر سؤال: {last_latency:.2f} ثانية | عدد الأسئلة: {len(latency_log)}")
         # ---- لحد هنا ----
         st.divider()
+        qa_cache = get_qa_cache()
+        st.caption(f"🗂️ عدد الإجابات المحفوظة: {len(qa_cache)}")
+        if st.button("🗑️ امسح الذاكرة المؤقتة"):
+            qa_cache.clear()
+            st.success("تم مسح الكاش.")
+        st.divider()
         if st.button("تحقق من الحد المتبقي عند Groq"):
             with st.spinner("بجيب البيانات من Groq..."):
                 info = check_groq_rate_limits()
@@ -177,6 +183,27 @@ def render_token_sidebar():
                 st.caption("ملاحظة: الفحص نفسه بيستهلك توكن واحد تقريبًا.")
 
 
+# ==========================================
+# 3.5 نظام الـ Caching للأسئلة المتكررة
+# ==========================================
+
+@st.cache_resource
+def get_qa_cache() -> dict:
+    """Cache مشترك بين كل المستخدمين، بيفضل موجود طول ما السيرفر شغال."""
+    return {}
+
+
+def normalize_question(q: str) -> str:
+    """يوحّد صيغة السؤال عشان زيادة فرصة المطابقة حتى لو فيه فروق بسيطة."""
+    q = q.strip().lower()
+    q = re.sub(r"\s+", " ", q)
+    q = q.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+    q = q.replace("ة", "ه")
+    q = q.rstrip("؟?. ")
+    return q
+
+
+CACHE_TTL_SECONDS = 600  # نفس مدة كاش تحميل البيانات
 # ==========================================
 # 4. دالة تحميل الشيتات
 # ==========================================
@@ -339,11 +366,21 @@ if question:
         st.markdown(question)
 
     with st.chat_message("assistant"):
-        with st.spinner("جاري المعالجة..."):
-            answer, elapsed = run_agent_turn(agent_llm, tools_by_name, st.session_state.lc_history, question)
-            record_latency(elapsed)
-        st.markdown(answer)
-        st.caption(f"⏱️ استغرقت {elapsed:.2f} ثانية")   # اختياري: تعرض الوقت تحت كل رد
+        qa_cache = get_qa_cache()
+        cache_key = normalize_question(question)
+        cached_entry = qa_cache.get(cache_key)
+
+        if cached_entry and (time.time() - cached_entry["timestamp"] < CACHE_TTL_SECONDS):
+            answer = cached_entry["answer"]
+            st.markdown(answer)
+            st.caption("⚡ إجابة فورية من الذاكرة المؤقتة (بدون استدعاء جديد)")
+        else:
+            with st.spinner("جاري المعالجة..."):
+                answer, elapsed = run_agent_turn(agent_llm, tools_by_name, st.session_state.lc_history, question)
+                record_latency(elapsed)
+            st.markdown(answer)
+            st.caption(f"⏱️ استغرقت {elapsed:.2f} ثانية")
+            qa_cache[cache_key] = {"answer": answer, "timestamp": time.time()}
 
     st.session_state.messages.append(("assistant", answer))
     st.session_state.lc_history.extend([HumanMessage(content=question), AIMessage(content=answer)])
