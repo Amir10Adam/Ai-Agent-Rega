@@ -72,9 +72,9 @@ SYSTEM_PROMPT = (
     "or month requested -> use 'real_estate_city' FIRST, since it already holds "
     "pre-aggregated per-city numbers and is faster/more reliable for that.\n"
     "2. If the requested city, month, or metric is NOT found in 'real_estate_city' -> "
-    "fall back to 'real_estate_all_data' and compute it yourself by filtering/grouping the "
-    "raw transactions. Explicitly tell the user the number came from the raw data because "
-    "it wasn't available in the city summary.\n"
+"fall back to 'real_estate_all_data' and compute it yourself by filtering/grouping the "
+"raw transactions. Explicitly tell the user the number came from the raw data because "
+"it wasn't available in the city summary.\n"
     "3. If the question asks for a breakdown BY PROPERTY TYPE (نوع العقار), BY "
     "NEIGHBORHOOD (حي), or BY MONTH -> always use 'real_estate_all_data' directly, since "
     "'real_estate_city' has no such columns — never try 'real_estate_city' for these first.\n"
@@ -305,9 +305,8 @@ def run_agent_turn(agent_llm, tools_by_name: dict, chat_history: list, question:
             elapsed = time.time() - start_time
     return "توقفت بعد عدة محاولات.",elapsed
 
-st.set_page_config(page_title="اسأل عن البيانات", page_icon="📊")
-st.title("📊 اسأل عن بيانات الشيتات والتابات المختلفة")
-
+st.set_page_config(page_title="اسأل عن البيانات العقاريه", page_icon="📊")
+st.title("📊 اسأل عن البيانات العقاريه")
 if not GOOGLE_SHEET_ID or not GROQ_API_KEY or not GROQ_MODEL:
     st.error("تأكد من إعداد المتغيرات الأساسية (GOOGLE_SHEET_ID, GROQ_API_KEY, GROQ_MODEL) في الـ Secrets أو ملف .env")
     st.stop()
