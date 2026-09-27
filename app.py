@@ -82,8 +82,6 @@ SYSTEM_PROMPT = (
     "return a city-wide total when the user asked for a per-neighborhood or per-type "
     "breakdown). If a requested column or breakdown genuinely doesn't exist in the chosen "
     "dataset, say so clearly instead of returning a misleading number.\n"
-    "5. Always tell the user which dataset ('real_estate_city' or 'real_estate_all_data') "
-    "the answer came from, so they know the source."
 )
 
 
@@ -308,8 +306,89 @@ def run_agent_turn(agent_llm, tools_by_name: dict, chat_history: list, question:
     return "توقفت بعد عدة محاولات.",elapsed
 
 
-st.set_page_config(page_title="اسأل عن البيانات", page_icon="📊")
-st.title("📊 اسأل عن بيانات الشيتات والتابات المختلفة")
+st.set_page_config(page_title="مؤشر بيانات العقارات", page_icon="🏢", layout="wide")
+
+PRIMARY = "#0B6E6E"
+PRIMARY_LIGHT = "#E6F5F4"
+ACCENT = "#F5A623"
+BG = "#F7F9FA"
+CARD_BG = "#FFFFFF"
+TEXT_DARK = "#1F2937"
+BORDER = "#E5E7EB"
+
+st.markdown(f"""
+<style>
+    .stApp {{
+        background-color: {BG};
+    }}
+    .custom-header {{
+        background: linear-gradient(90deg, {PRIMARY} 0%, #0F8A8A 100%);
+        padding: 18px 28px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }}
+    .custom-header h1 {{
+        color: white;
+        font-size: 22px;
+        margin: 0;
+        font-weight: 700;
+    }}
+    .custom-header span {{
+        color: {PRIMARY_LIGHT};
+        font-size: 13px;
+    }}
+    [data-testid="stChatMessage"] {{
+        background-color: {CARD_BG};
+        border: 1px solid {BORDER};
+        border-radius: 12px;
+        padding: 4px 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        margin-bottom: 10px;
+    }}
+    [data-testid="stChatInput"] textarea {{
+        border-radius: 10px !important;
+        border: 1.5px solid {PRIMARY} !important;
+    }}
+    .stButton>button {{
+        background-color: {PRIMARY};
+        color: white;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+    }}
+    .stButton>button:hover {{
+        background-color: {ACCENT};
+        color: white;
+    }}
+    section[data-testid="stSidebar"] {{
+        background-color: {CARD_BG};
+        border-left: 1px solid {BORDER};
+    }}
+    [data-testid="stMetric"] {{
+        background-color: {PRIMARY_LIGHT};
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid {BORDER};
+    }}
+    [data-testid="stMetricValue"] {{
+        color: {PRIMARY};
+        font-weight: 700;
+    }}
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="custom-header">
+    <h1>🏢 مؤشر بيانات العقارات</h1>
+    <span>مدعوم بالذكاء الاصطناعي — بيانات محدثة لحظيًا</span>
+</div>
+""", unsafe_allow_html=True)
 
 if not GOOGLE_SHEET_ID or not GROQ_API_KEY or not GROQ_MODEL:
     st.error("تأكد من إعداد المتغيرات الأساسية (GOOGLE_SHEET_ID, GROQ_API_KEY, GROQ_MODEL) في الـ Secrets أو ملف .env")
