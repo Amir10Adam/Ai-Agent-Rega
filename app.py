@@ -268,6 +268,7 @@ def make_pandas_tool(datasets: dict[str, pd.DataFrame], code_llm):
 Question: "{question_description}"
 
 Write ONLY executable Python (pandas) code assigning the answer to a variable named `result`.
+-Before writing the code, briefly outline your steps as comments, then write the code.
 - CRITICAL INSTRUCTION: Never drop, filter out, or ignore outliers, extreme values, or high values unless the user explicitly and directly asks you to remove outliers. Always include all data points.
 - IMPORTANT: every column in `df` was loaded as plain text/strings, even numeric-looking ones.
   Always convert numeric columns first with pd.to_numeric(df[col], errors="coerce") before any
